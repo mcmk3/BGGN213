@@ -14,3 +14,5 @@ create_github_token()
 gitcreds_set()
 
 ```
+
+We can go straight to particular regions by adding a link. The link can be added by just adding a url.
