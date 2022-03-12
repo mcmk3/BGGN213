@@ -1,0 +1,293 @@
+---
+title: 'Class 12: RNA-Seq mini project'
+author: "Mirte Ciz Marieke Kuijpers"
+date: "25/02/2022"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Outline of mini-project
+
+1. Input our counts and metadata files.
+    - Check the format and fix if necessary
+  
+2. Run differential expression analysis
+    - Setup the object required by deseq()
+    - Run deseq()
+  
+3. Add annotation
+    - Gene names and entrez IDs
+
+4. Make volcano plot
+    - Make sure to have it in log format
+  
+5. Pathway analysis
+    - Potentially look at multiple pathways
+  
+6. Save results
+
+
+```{r Set-up, message = FALSE}
+# Load libraries
+## for differential expression analysis
+library("DESeq2")
+
+## For plotting
+library("ggplot2")
+library("EnhancedVolcano")
+
+## For annotation
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+
+## For pathway analysis
+library("gage")
+library("gageData")
+library("pathview")
+
+# Data for pathway analysis
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+data(go.sets.hs)
+data(go.subs.hs)
+```
+
+# 1: Input counts and metadata
+
+The data is from the knock-down of a Hox gene. As Hox genes have many functions this will effect many pathways in the cell. First load this data into r objects. Set the counts row.names as the gene identifiers using `row.names = 1`.
+
+```{r Load data}
+# Load data
+countData <- read.csv("GSE37704_featurecounts.csv", header = TRUE, row.names = 1)
+metadata <- read.csv("GSE37704_metadata.csv", header = TRUE)
+
+# Check data
+str(countData)
+str(metadata)
+
+```
+At this stage it is important to check the order and contents of the metadata and counts match, as if this is not the case there will be issues later. We can already see from the output of the `str()` that there is a length column that will not match up with the metdata and so will need to be removed.
+
+```{r Check for matching orders}
+# If we do not remove the column the objects will not match
+if(all(colnames(countData) == metadata$id)){
+  print("The conditions in the two objects are in matching order and analysis can begin.")
+}else{
+  print("The conditions in the two objects do not match or are not in matching order, please do not continue to analysis until all conditions are in both objects and are in matching order.")
+}
+
+# Remove the length column
+countDat <- countData[, -1]
+
+# Check this was successful
+str(countDat)
+
+# Do the conditions match
+if(all(colnames(countDat) == metadata$id)){
+  print("The conditions in the two objects are in matching order and analysis can begin.")
+}else{
+  print("The conditions in the two objects do not match or are not in matching order, please do not continue to analysis until all conditions are in both objects and are in matching order.")
+}
+
+```
+The two objects now match and so analysis could begin. However, first we should remove rows that have no data (i.e. all columns have 0 at that row).
+
+```{r Remove rows with no data}
+# Remove no data rows from countDat and asign to a new variable counts
+counts <- countDat[rowSums(countDat) != 0, ]
+
+```
+
+Finally, we could do a Principle Component Analysis for quality control before beginning analysis.
+
+```{r PCA}
+# PCA
+pca <- prcomp(t(counts), scale. = TRUE) # transpose counts because it is a symmetric matrix
+
+# Check pca results
+summary(pca)
+
+# Plot pca results
+## Create a data.frame for ggplot
+df <- as.data.frame(pca$x)
+df$meta <- metadata$condition
+
+## Make a scatter plot colored by condition
+ggplot(df, aes(PC1, PC2, fill = meta)) +
+  geom_point(pch = 21, size = 2) +
+  labs(fill = "Condition")
+  
+       
+```
+As expected, the control and knock down groups are clearly separated. If this were not the case it might not be worth continuing, as if there are no clear differences between control and condition of interest something may be amiss with our data. With quality control performed, it is now safe to proceed to analysis.
+
+# 2: Run differential expression analysis
+
+Before analysis can truly begin we need to put data into a format that can be read by the `DESeq2` package functions. It requires data in an ordered object, which can be achieved by using functions  provided in the package.
+
+```{r DESeq2 input data}
+# Convert data into a format the DESeq2 package can use
+dds <- DESeqDataSetFromMatrix(countData = counts, colData = metadata, design = ~condition)
+
+# Check this object
+dds
+```
+
+We can then run `DESeq` to obtain results including statistics.
+
+```{r DESeq2 run}
+# Obtain results
+dds.r <- DESeq(dds)
+res <- results(dds.r)
+
+# Inspect results
+res
+```
+
+Before we inspect or plot this data we should first annotate the results to add gene identifiers that are more readable ("human-friendly").
+
+# 3: Annotate results
+
+As pathway analysis with the `pathview()` function requires Entrez results it makes sense to annotate our results with these, and perhaps also gene names and synbols for readability.
+
+```{r annotate results}
+# Inspect which databases we could annotate with
+columns(org.Hs.eg.db)
+
+# Map Entrez IDs and gene names to gene identifiers
+res$entrez <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), # Our gene identifiers
+                     keytype="ENSEMBL",        # The format of the gene identifiers from keys
+                     column="ENTREZID",          # The new format we want to add 
+                     multiVals="first")     # There can be multiple transcripts per gene, we only want the first (the highest frequency version), note this one to many mapping
+
+res$gene.name <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), 
+                     keytype="ENSEMBL",   
+                     column="GENENAME",      
+                     multiVals="first")   
+
+res$symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), 
+                     keytype="ENSEMBL",   
+                     column="SYMBOL",      
+                     multiVals="first") 
+
+# Check this was successful
+head(res)
+
+```
+# 4: Plot results
+
+With annotations in place we can now do some exploratory data analysis, by plotting our annotated data.
+
+```{r Plot}
+
+# Plot with this package
+x <- as.data.frame(res)
+x2 <- x[x$padj != 0,]
+
+EnhancedVolcano(x2, lab = x2$symbol, x = 'log2FoldChange', y = 'padj', ylab = bquote(~-Log[10] ~ italic(P_adjusted)), title = "Volcano Plot of DESeq2 Results", subtitle = "Comparison of Control and HoxA1 KD")
+
+```
+
+# 5. Pathway analysis
+
+At this point, with the results annotated, we can perform pathway analysis to see which pathways are most effected by knock down of the HoxA1 gene. Gage requires a named vector of fold changes, and requires names to be of the Entrez gene IDs type, so the first step is to manipulate data into this format.
+
+```{r Format data for Gage}
+# Make a fold change vector
+foldchanges <- res$log2FoldChange
+
+# Set names of each value to the entrez gene ID
+names(foldchanges) <- res$entrez
+
+# Check this has worked
+head(foldchanges)
+
+```
+Now that the data is in an appropriate format we can run the analysis.
+
+```{r KEGG analysis}
+# Focus on signaling and metabolic pathways only
+kegg.sets.hs <- kegg.sets.hs[sigmet.idx.hs]
+
+# Run KEGG analysis
+keggres <- gage(foldchanges, gsets=kegg.sets.hs, same.dir=TRUE)
+
+# Check results
+attributes(keggres)
+
+str(keggres)
+
+```
+
+We can also look within the these attributes, for example, we can look at the pathways which have a lot of down-regulated and up-regulated genes.
+
+```{r Top three down and up pathways}
+# Look at the first three down (less) pathways
+head(keggres$less, 3)
+
+# Look at the first three up (greater) pathways
+head(keggres$greater, 3)
+```
+The data from this analysis can be plotted using the `pathview()` function from the pathview package. To simplify the initial test of this package, I will initially view a single pathway, using `pathway.id` and choosing the cell cycle pathway for down regulated and the Jak-STAT signaling pathway for up regulated pathway.
+
+```{r pathview of asthma pathway}
+# Diagram of cell cycle pathway up and down regulation of genes
+pathview(gene.data=foldchanges, pathway.id="hsa04110")
+
+# Diagram of cytokine-cytokine receptor interaction pathway up and down regulation of genes
+pathview(gene.data=foldchanges, pathway.id="hsa04630")
+
+```
+
+![The image created by the code above](hsa04110.pathview.png)
+
+![The image created by the code above](hsa04630.pathview.png)
+
+We can also use the GO database and/or many other databases for pathway analysis. To use the GO (Gene Ontology) database we just pass the GO genesets to the gage function in place of KEGG(that we used above).
+
+```{r GO pathway analysis}
+# Focus on Biological Process subset of GO
+gobpsets <-  go.sets.hs[go.subs.hs$BP]
+
+# Use gage for pathway analysis
+gobpres <-  gage(foldchanges, gsets=gobpsets)
+
+# View top results for up and down regulated genes
+head(gobpres$less, 3)
+head(gobpres$greater, 3)
+```
+Unfortunately, these results cannot be fed to `pathview()` as it only excepts KEGG inputs. It is nevertheless interesting to examine the top GO hits. Furthermore, the GO database is particularly computer friendly and can probably used for many other analyses. 
+
+# 6. Save results
+
+The results can also be ordered for better viewing and then should also be saved for future use.
+
+```{r order results}
+# Order the results by p value and place the index of these orders in a vector
+ord <- order( res$padj )
+
+# View the results ordered by the index vector of ordered p values
+head(res[ord,])
+
+# Save these results for later
+write.csv(res[ord,], "deseq_results.csv")
+
+```
+
+# Session info
+
+```{r Session Info}
+sessionInfo()
+```
+
+
+
+
