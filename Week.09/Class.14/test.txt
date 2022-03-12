@@ -1,0 +1,59 @@
+Rank	County	Population
+1	Los Angeles County	10,014,009
+2	San Diego County	3,298,634
+3	Orange County	3,186,989
+4	Riverside County	2,418,185
+5	San Bernardino County	2,181,654
+6	Santa Clara County	1,936,259
+7	Alameda County	1,682,353
+8	Sacramento County	1,585,055
+9	Contra Costa County	1,165,927
+10	Fresno County	1,008,654
+11	Kern County	909,235
+12	San Francisco County	873,965
+13	Ventura County	843,843
+14	San Joaquin County	779,233
+15	San Mateo County	764,442
+16	Stanislaus County	552,878
+17	Sonoma County	488,863
+18	Tulare County	473,117
+19	Solano County	453,491
+20	Santa Barbara County	448,229
+21	Monterey County	439,035
+22	Placer County	404,739
+23	San Luis Obispo County	282,424
+24	Merced County	281,202
+25	Santa Cruz County	270,861
+26	Marin County	262,321
+27	Yolo County	216,403
+28	Butte County	211,632
+29	El Dorado County	191,185
+30	Shasta County	182,155
+31	Imperial County	179,702
+32	Madera County	156,255
+33	Kings County	152,486
+34	Napa County	138,019
+35	Humboldt County	136,463
+36	Nevada County	102,241
+37	Sutter County	99,633
+38	Mendocino County	91,601
+39	Yuba County	81,575
+40	Lake County	68,163
+41	Tehama County	65,829
+42	San Benito County	64,209
+43	Tuolumne County	55,620
+44	Calaveras County	45,292
+45	Siskiyou County	44,076
+46	Amador County	40,474
+47	Lassen County	32,730
+48	Glenn County	28,917
+49	Del Norte County	27,743
+50	Colusa County	21,839
+51	Plumas County	19,790
+52	Inyo County	19,016
+53	Mariposa County	17,131
+54	Trinity County	16,112
+55	Mono County	13,195
+56	Modoc County	8,700
+57	Sierra County	3,236
+58	Alpine County	1,204

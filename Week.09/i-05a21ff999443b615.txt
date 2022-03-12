@@ -1,0 +1,6 @@
+Name of the computer instance you have made on AWS is:
+i-05a21ff999443b615 
+
+ssh -i "bggn213_mkuijpers.pem" ubuntu@ec2-34-217-214-87.us-west-2.compute.amazonaws.com
+
+/mnt/c/Users/mirte/Documents/UCSD/Foundations\ of\ Bioinformatics/Week.09
