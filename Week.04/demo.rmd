@@ -1,0 +1,20 @@
+---
+title: "RMarkdown demo"
+author: "MCMK"
+date: "01/02/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Week 5
+
+This is a demo. I am writing this just to write something as an example...
+
+```{r demo}
+plot(1:10, 11:20)
+```
