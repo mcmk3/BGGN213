@@ -1,0 +1,237 @@
+---
+title: 'Class 7: Machine Learning (Part I)'
+author: "Mirte Ciz Marieke Kuijpers"
+date: "09/02/2022"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R norm function
+
+```{r rnorm() investigation}
+# Investigate the rnorm() function using the help pages.
+#?rnorm
+
+# Test the rnorm() function
+rnorm(10)
+
+# Use some of the arguments with a default set value
+rnorm(100, mean = 3)
+
+# Plot some of these results
+
+hist(rnorm(1000, mean = 3))
+
+```
+
+# Clustering methods
+
+## Using the kmeans() function
+
+Now that we understand rnorm()'s function, we can proceed to the example usage of kmeans(). The first step is to generate some example data to test the kmeans() function with.
+
+```{r generating example data}
+# Generate some random data
+tmp <- c(rnorm(30, -3), rnorm(30, 3))
+tmp
+
+# Format the random data to be used by kmeans()
+x <- cbind(x=tmp, y=rev(tmp))
+x
+
+# Plot data to get a feel for the distribution
+plot(x)
+```
+
+Note that the data above is randomly generated each time the code chunk is run. Therefore, the plot and all answers relying on this data will vary slightly each time the code is re-initialised. Now we can use the kmeans() function to cluster this random data.
+
+```{r Use kmeans() function}
+# Cluster the data using the kmeans method
+k <- kmeans(x, centers = 2, nstart = 10) # nstarts represents number of new starts (i.e. iterations) to run
+k
+```
+
+If we want to know how many points are in each cluster use the size values within k. Other interesting data can also be extracted from the variable containing the kmeans() results.
+
+```{r Examin kmeans() outputs}
+# Find the number of points in each group
+k$size
+
+# To find the centroids use:
+k$centers
+
+# You can also plot them
+plot(k$centers)
+
+```
+
+The membership vector, assigning each point to a cluster, is perhaps the most important results, as it allows you to analyse how your points are clustered. 
+
+```{r Plot kmeans() ouput}
+# Print the cluster vector
+k$cluster
+
+# Plot the points coloured by these clusters
+
+# Load ggplot2 library
+library(ggplot2)
+
+# Put data into a format ggplot can use
+dat <- as.data.frame(cbind(x, k$cluster))
+colnames(dat) <- c("x", "y", "cluster")
+
+# Plot the data
+ggplot(dat, aes(x, y, colour = as.factor(cluster))) +
+  geom_point() + 
+  labs(colour = "Cluster")
+
+# In actual fact, one does not need to consolidate the data, one can simply use k$cluster outside the aes(), provided that k$cluster and x stay in the same order, the data will remain correctly correlated with the colours
+ggplot(as.data.frame(x), aes(x,y)) +
+  geom_point(col = k$cluster)
+
+```
+
+## hclust() function 
+
+kmeans() uses Euclidean distance, hclust can use various similarity/difference measures, which is useful, but requires extra input. hclust() requires data already as distances between points (a dissimilarity/similarity matrix), not the raw data. One way to do so is to use the dist() function.
+
+```{r hclust() function}
+# Use the hclust() function on the same data (x) used for investigating the kmeans() function
+hc <- hclust(dist(x))
+hc
+```
+
+While the output for hclust(), when printed, is not as useful as for kmeans(), it has a custom plot method which helps interpret the data. In the dendrogram produced, the height of the crossbars represents (or is proportional to) the distance between the two groups joined by said crossbar.
+
+```{r plot hclust() ouput}
+# Plot hclust() data, as printing the output is not as useful as for kmeans()
+plot(hc)
+
+# One can also plot with ggplot, if a wrapper for dendrograms is also loaded:
+library(ggdendro)
+
+# Convert the data into a format ggplot can use - code borrowed from the following tutorial https://cran.r-project.org/web/packages/ggdendro/vignettes/ggdendro.html
+ghc <- as.dendrogram(hc)
+
+ghc.dat <- dendro_data(ghc, type = "rectangle")
+
+ggplot(segment(ghc.dat)) + 
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) + 
+  coord_flip() + 
+  scale_y_reverse(expand = c(0.2, 0))
+
+```
+
+To determine groups, one can set a horizontal cut-off line, which separates points connected below that cut-off into clusters. 
+
+```{r}
+
+plot(hc)
+abline(h = 10, col = "Red") 
+
+```
+
+Instead of adding this cut-off line, we can use `cutree()`, a function specifically for this.
+
+```{r}
+cth <- cutree(hc, h=10)
+#or specify the number of groups
+ctk <- cutree(hc, k=2)
+
+# Put data into a format ggplot can use
+dat <- as.data.frame(cbind(x, cth, ctk))
+colnames(dat) <- c("x", "y", "cth", "ctk")
+
+# Plot the data
+ggplot(dat, aes(x, y, colour = as.factor(cth))) +
+  geom_point() + 
+  labs(colour = "Cutree output by line")
+
+ggplot(dat, aes(x, y, colour = as.factor(ctk))) +
+  geom_point() + 
+  labs(colour = "Cutree output by group number")
+```
+
+# Principle Component Analysis
+
+For this we are going to use data on the food consumption of citezins of different countries within the United Kingdom. First download the data:
+
+```{r Obtain workable data}
+# Download and assign data to an r object
+url <- "https://tinyurl.com/UK-foods"
+f.dat <- read.csv(url)
+
+# Inspect the data
+str(f.dat)
+
+# The first column would be better set as rownames than its own column
+rownames(f.dat) <- f.dat[,1]
+f.dat <- f.dat[,-1]
+
+# Check this has worked
+head(f.dat)
+dim(f.dat)
+
+#N.B. a better way to have dealt with this problem is to set rownames = 1 in the original read.csv
+food <- read.csv(url, row.names = 1)
+str(food)
+head(food)
+
+```
+
+The data (food), is now in an appropriate form for analysis.
+
+```{r Exploratory Analysis of the data}
+# Plot the data
+barplot(as.matrix(food), beside = TRUE, col = rainbow(nrow(food)))
+
+pairs(food, col=rainbow(nrow(food)), pch=16)
+
+```
+
+Analysis through plotting is not very helpful, thus we move onto PCA. We will begin with the basic PCA from base r, packages with other PCA functions exist, but they are often specialized PCA functions for specific data types or circumstances. The base r PCA function is `prcomp()`.
+
+```{r Using prcomp()}
+# prcomp() expects the transpose of the way our data currently is, with the columns as the categories we are interested in
+pca <- prcomp(t(food))
+
+# Printing pca gives the PC values for each of our food categories, it is thus easier to look at a summary of the data
+summary(pca)
+attributes(pca)
+
+```
+
+We can now view a plot of the data along the two most important axes as found through PCA. A plot of PC1 vs PC2 is often called a PCA plot or "score plot". The x component of the prcomp() output gives the data for such a score plot.
+
+```{r}
+
+plot(pca$x[,1], pca$x[,2], col = c("Orange", "Red", "Blue", "Green"), pch = 16) #Note order is England, Wales, Scotland, N.Ireland
+
+##Need to try plot with ggplot...
+p <- as.data.frame(pca$x)
+
+ggplot(p, aes(PC1, PC2)) +
+  geom_point(fill = c("Orange", "Red", "Blue", "Green"), pch = 21, size = 2) +
+  geom_label(label = c("England", "Wales", "Scotland", "N.Ireland"), hjust = -0.15) +
+  scale_x_continuous(limits = c(-280, 580))
+
+```
+
+The four points are the four countries. Note the the large distance between one point (N.Ireland) versus the other three (England, Wales and Scotland) on the PC1 axis, which explains the most variation. Note that another important point is to show how much these axes actually contribute to the variation (the loadings), these are found in the component rotation. As PC1 explains most of the variation, we will focus on this.
+
+```{r}
+par(mar=c(10, 3, 0.35, 0)) #change positioning of the plot
+barplot(pca$rotation[,1], las=2)
+```
+
+
+
+

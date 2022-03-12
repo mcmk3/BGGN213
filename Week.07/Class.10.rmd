@@ -1,0 +1,151 @@
+---
+title: "Class.10.md"
+author: "Mirte Ciz Marieke Kuijpers"
+date: "18/02/2022"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Asthma associated SNP genotypes from the 1000 Genomes Project
+
+We have downloaded data about one of the Asthma associated SNPs from Verlaan et. al. 2009 in the MXL population of the 1000 Genomes project.
+
+```{r load data as an r object}
+# Read in csv file
+mxl <- read.csv("373531-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv", header = T)
+head(mxl)
+```
+
+We can now determine the frequency of different alleles in the MXL population.
+
+```{r frequency calculations}
+# Make binary presence absence table
+mxl.t <- table(mxl)
+
+# Calculate frequencies
+mxl.f <- (colSums(mxl.t)/nrow(mxl))*100
+
+mxl.f
+
+```
+OR
+
+```{r alternative method}
+table(mxl$Genotype..forward.strand.)/nrow(mxl)*100
+```
+Now compare for a different population.
+
+```{r GBR population}
+# Load file
+gbr <- read.csv("373522-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv", header = T)
+
+# Check file
+head(gbr)
+
+# Get frequencies
+table(gbr$Genotype..forward.strand.)/nrow(gbr)*100
+```
+
+This shows that these two populations have very different genotype frequncies for this Asthma implicated SNP. (N.B. the implication is just a correlation, and correlation does not = conservation, but these results are intersting.)
+
+
+# Section 2
+
+```{r}
+# Set up
+library("ShortRead")
+
+# Read in Fastq files
+HG1 <- readFastq("HG00109_1.fastq")
+HG2 <- readFastq("HG00109_2.fastq")
+
+```
+
+# Homework section
+
+We have data for the gene expression of the gene associated with the rs8067378 SNP linked to Asthma for ~230 samples.
+
+```{r read in data}
+# Read in data to an r object
+dat <- read.table("rs8067378_ENSG00000172057.6.txt", row.names = 1, header = TRUE)
+
+# Inspect data
+str(dat)
+summary(dat)
+
+```
+
+To determine the frequencies of each genotype we can use the following code:
+
+```{r calculate freqs}
+# For now, ignore gene expression
+gen <- dat[,-3]
+
+# Make binary presence absence table
+geno.t <- table(gen)
+
+head(geno.t)
+
+# Sum across the columns to get frequencies
+geno.f <- (colSums(geno.t)/nrow(dat))*100
+
+geno.f
+
+```
+To find the median expression for each of these genotypes we can group the dataset by genotype using the `dplyr` package.
+
+```{r median expressions}
+# Load the dplyr package
+library("dplyr")
+
+# Group the data set by genotype and find the median
+
+dat %>%
+  filter(geno == "A/G") %>%
+  summary()
+
+dat %>%
+  filter(geno == "G/G") %>%
+  summary()
+
+dat %>%
+  filter(geno == "A/A") %>%
+  summary()
+
+```
+So the expression median for the "A/G" = 25.065, "G/G" = 20.074 and "A/A" = 31.25.
+
+We can also plot this data.
+
+```{r plot data}
+# Set up
+library("ggplot2")
+
+# Plot
+
+ggplot(dat, aes(x = geno, y = exp, fill = geno)) +
+  geom_boxplot(notch = TRUE, outlier.shape = NA, show.legend = FALSE) +
+  geom_jitter(alpha = 0.5, shape=21, position=position_jitter(0.2), fill = "grey") +
+  labs(x = "Genotype", y = "ORMDL3 Expression")
+  
+
+```
+
+This plot suggests that the A SNP variant causes greater expression of ORMDL3. Furthermore, this effect appears to be additive rather tna dominant, with ORMDL3 expression for A/A > A/G > G/G.
+
+
+
+
+
+
+
+
+
+
+
+
