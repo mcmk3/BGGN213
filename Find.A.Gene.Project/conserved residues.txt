@@ -1,0 +1,4 @@
+resid 7, resid 15, resid 16, resid 18, resid 21, resid 28, resid 36, resid 40, resid 49, resid 53, resid 54, resid 57, resid 59, resid 60, resid 61, resid 65, resid 77, resid 81, resid 82, resid 83, resid 84, resid 85, resid 86, resid 87, resid 90, resid 91, resid 92, resid 93, resid 94, resid 95, resid 96, resid 97, resid 100, resid 101, resid 115, resid 116, resid 119, resid 123, resid 127, resid 135, resid 142, resid 150, resid 177, resid 181, resid 182, resid 185, resid 186, resid 187, resid 188, resid 189, resid 190, resid 191, resid 194, resid 198, resid 200, resid 203, resid 210, resid 211, resid 214 
+
+
+7 15 16 18 21 28 36 40 49 53 54 57 59 60 61 65 77 81 82 83 84 85 86 87 90 91 92 93 94 95 96 97 100 101 115 116 119 123 127 135 142 150 177 181 182 185 186 187 188 189 190 191 194 198 200 203 210 211 214 58

@@ -1,0 +1,88 @@
+cellular organisms
++-Eukaryota
+| \-Opisthokonta
+|   \-Fungi
+|     \-Dikarya
+|       \-Ascomycota
+|         \-saccharomyceta
+|           \-Pezizomycotina
+|             \-leotiomyceta
+|               \-dothideomyceta
+|                 \-Dothideomycetes
+|                   \-Dothideomycetidae
+|                     \-Dothideales
+|                       \-Saccotheciaceae
+|                         \-Aureobasidium
+|                           +-Aureobasidium melanogenum
+|                           \-Aureobasidium pullulans
++-Archaea
+| \-Euryarchaeota
+|   \-Stenosarchaea group
+|     \-Halobacteria
+|       +-Natrialbales
+|       | \-Natrialbaceae
+|       |   \-Natrinema
+|       |     \-Natrinema pallidum
+|       +-Haloferacales
+|       | +-Haloferacaceae
+|       | | +-Haloplanus
+|       | | | \-Haloplanus rallus
+|       | | \-Halogranum
+|       | |   \-Halogranum amylolyticum
+|       | \-Halorubraceae
+|       |   +-Salinigranum
+|       |   | +-Salinigranum halophilum
+|       |   | \-Salinigranum salinum
+|       |   \-Halorubrum
+|       |     +-Halorubrum sodomense
+|       |     \-Halorubrum trapanicum
+|       \-Halobacteriales
+|         +-Haloarculaceae
+|         | +-Haloarcula
+|         | | \-Haloarcula mannanilytica
+|         | +-Halomicroarcula
+|         | | \-Halomicroarcula salinisoli
+|         | \-Natronomonas
+|         |   \-Natronomonas gomsonensis
+|         \-Halobacteriaceae
+|           \-Halobacterium
+|             \-Halobacterium salinarum
+\-Bacteria
+  +-FCB group
+  | \-Bacteroidetes/Chlorobi group
+  |   \-Bacteroidetes
+  |     \-Cytophagia
+  |       \-Cytophagales
+  |         \-Cyclobacteriaceae
+  |           \-Cyclobacterium
+  |             \-Cyclobacterium plantarum
+  +-Proteobacteria
+  | \-Gammaproteobacteria
+  |   \-Alteromonadales
+  |     \-Alteromonadaceae
+  |       \-Ningiella
+  |         \-Ningiella ruwaisensis
+  \-Terrabacteria group
+    +-Chloroflexi
+    | \-Ktedonobacteria
+    |   \-Ktedonobacterales
+    |     \-Ktedonobacteraceae
+    |       \-Ktedonobacter
+    |         \-Ktedonobacter robiniae
+    +-Firmicutes
+    | \-Bacilli
+    |   \-Bacillales
+    |     \-Bacillaceae
+    |       +-Bacillus
+    |       | \-Bacillus coahuilensis
+    |       +-Alteribacter
+    |       | \-Alteribacter aurantiacus
+    |       \-Alkalihalobacillus
+    |         \-Alkalihalobacillus hwajinpoensis
+    \-Deinococcus-Thermus
+      \-Deinococci
+        \-Thermales
+          \-Thermaceae
+            \-Thermus
+              \-Thermus thermophilus
+-----------------------------------
