@@ -1,0 +1,165 @@
+---
+title: "Week 05, Class Friday"
+author: "Mirte Ciz Marieke Kuijpers - A59010989"
+date: "04/02/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#Introduction
+
+The topic of this class is the creation of functions. The assignment is to create a function to help grading students.
+
+Functions to consider using/keep in mind during the class include apply(), mean(), is.na(), which.min(), which.max(), sum(), and cor(). Additionally, some example data is provided below.
+
+```{r example data}
+# Example input vectors to start with
+student1 <- c(100, 100, 100, 100, 100, 100, 100, 90)
+student2 <- c(100, NA, 90, 90, 90, 90, 97, 80)
+student3 <- c(90, NA, NA, NA, NA, NA, NA, NA)
+```
+
+
+#Question 1
+Q1 requires writing a function, grade(), to obtain an overall grade for each student.
+
+```{r create grade() function -> my try before and at beginning of class}
+#create the function grade using the function function(args){code to carry out}
+grade <- function(File, Header=TRUE, Print=TRUE){
+  #read in the .csv input, using input arguments
+  dat <- read.csv(File, header = Header)
+  
+  #inspect input data to make sure it is as it should be
+  str(dat)
+  
+  #turn NA into 0, this way penalised for not having turned in assignment
+  dat[is.na(dat)] = 0
+  
+  #create a data frame to store grades
+  scores <- data.frame(Student=character(), Average.Grades=integer(), Letter.grade=character())
+  
+  #iteritively grade students using a for loop
+  for(i in 1:length(dat[,1])){
+    
+    #print out resutls as a sanity check
+    #print(paste(dat[i,1], "has an average grade of", mean(as.numeric(dat[i, -1]))))
+    
+    #create input for data grame: student marker and average grade
+    stu <- paste("Student", i)
+    scr <- mean(as.numeric(dat[i, -1]))
+    
+    #feed average grades to the data frame
+    scores <- rbind(scores, c(stu, scr))
+    
+    #give a letter grade to each student
+    if(scores[i,2] > 90){
+      scores[i,3] <- "A+"
+    } else if(scores[i,2] > 80){
+      scores[i,3] <- "A"
+    }else if(scores[i,2] > 70){
+      scores[i,3] <- "B"
+    }else if(scores[i,2] > 60){
+      scores[i,3] <- "C"
+    }else if(scores[i,2] > 50){
+      scores[i,3] <- "D"
+    }else{
+      scores[i,3] <- "Fail"
+    }
+    
+  }
+  
+  #Set the column names back to what they should be
+  colnames(scores) <- c("Student", "Average Grade", "Letter Grade")
+  
+  #return or print scores
+  if(Print){
+    print(scores)
+  }else{
+    return(scores)
+  }
+  
+}
+
+```
+
+
+
+```{r function made together in class}
+
+##create the function grade using the function function(args){code to carry out}
+grade <- function(File, Header=TRUE, Print=TRUE){
+  print("Note, this function presumes your input file has a header, unless the second argument (Header) is set to FALSE. Furthermore, this function will print rather than return results unless Print (the third arguement is set to FALSE. Finally, this function assumes that the students name/number is in the first column of the input data.")
+  #read in the .csv input, using input arguments
+  dat <- read.csv(File, header = Header)
+  
+  #inspect input data to make sure it is as it should be
+  #str(dat)
+  
+  #turn NA into 0, this way students are penalised for not having turned in assignment
+  dat[is.na(dat)] = 0
+  
+  #create a data frame to store grades
+  scores <- data.frame(Student=character(), Average.Grades=integer(), Letter.grade=character())
+  
+  #iteritively grade students using a for loop
+  for(i in 1:length(dat[,1])){
+    
+
+    #find the minimum value which will be removed from grades such that the lowest grade does not contribute to the student's average
+    mv <- which.min(as.numeric(dat[i, -1]))
+    #print(paste("The index of the minimum score for student", i, "is", mv, "."))
+    scrs <- dat[i, -1]
+    
+      #create input for data frame: student name/number and average grade
+    stu <- paste("Student", i)
+    scr <- mean(as.numeric(scrs[-mv]))
+    
+    #feed average grades to the data frame
+    scores <- rbind(scores, c(stu, scr))
+    
+    #give a letter grade to each student
+    if(scores[i,2] > 90){
+      scores[i,3] <- "A+"
+    } else if(scores[i,2] > 80){
+      scores[i,3] <- "A"
+    }else if(scores[i,2] > 70){
+      scores[i,3] <- "B"
+    }else if(scores[i,2] > 60){
+      scores[i,3] <- "C"
+    }else if(scores[i,2] > 50){
+      scores[i,3] <- "D"
+    }else{
+      scores[i,3] <- "Fail"
+    }
+    
+  }
+  
+  #Set the column names back to what they should be
+  colnames(scores) <- c("Student", "Average Grade", "Letter Grade")
+  
+  #return or print scores
+  if(Print){
+    print(scores)
+  }else{
+    return(scores)
+  }
+  
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+

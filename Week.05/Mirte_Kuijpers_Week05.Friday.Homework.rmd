@@ -1,0 +1,185 @@
+---
+title: "Homework for Week 5 Friday Class"
+author: "Mirte Ciz Marieke Kuijpers"
+date: "04/02/2022"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Introduction
+
+The topic of this class is the creation of functions. The assignment is to create functions to help with pulling statistics from a gradebook of student grades for homework assignments.
+
+# Question 1
+Q1 requires writing a function, grade(), to obtain an overall grade (i.e. average grade) for each student. It provides the example file student_homework.csv, which the function must be able to use. It also stipulates that the lowest grade a student receives should not be included in the calculation of the average. 
+
+Below is a function I wrote during class, before the final solution was revealed. While it is functional, it would not be efficient for larger inputs, thus the class solution to question 1 will also be given.
+
+```{r creation of the grade() function}
+##create the function grade using the function function(args){code to carry out}
+grade.M <- function(File, Header=TRUE, Print=TRUE){
+  #Print a few notes for this function, such that people are aware of important information.
+  print("WARNING: this function assumes that the students name/number or other identifier is in the first column of the input data. If this is not the case, this function will give an error.")
+  print("Note: this function presumes your input file has a header, unless the second argument (Header) is set to FALSE.")
+  print("Secondary Note: this function will print rather than return results unless Print (the third arguement) is set to FALSE.")
+  #read in the .csv input, using input arguments
+  dat <- read.csv(File, header = Header)
+  
+  #turn NA into 0, this way students are penalized for not having turned in an assignment
+  dat[is.na(dat)] = 0
+  
+  #create a data frame to store grades
+  scores <- data.frame(Student=character(), Average.Grades=integer(), Letter.grade=character())
+  
+  #iteratively grade students using a for loop
+  for(i in 1:length(dat[,1])){
+    #find the minimum value which will be removed from grades such that the lowest grade does not contribute to the student's average
+    mv <- which.min(as.numeric(dat[i, -1]))
+    #print(paste("The index of the minimum score for student", i, "is", mv, "."))
+
+    #create input for data frame: student name/number and average grade
+    stu <- paste("Student", i)
+    scrs <- dat[i, -1]
+    scr <- mean(as.numeric(scrs[-mv]))
+    
+    #feed average grades to the data frame
+    scores <- rbind(scores, c(stu, scr))
+    
+    #give a letter grade to each student
+    if(scores[i,2] > 90){
+      scores[i,3] <- "A+"
+    } else if(scores[i,2] > 80){
+      scores[i,3] <- "A"
+    }else if(scores[i,2] > 70){
+      scores[i,3] <- "B"
+    }else if(scores[i,2] > 60){
+      scores[i,3] <- "C"
+    }else if(scores[i,2] > 50){
+      scores[i,3] <- "D"
+    }else{
+      scores[i,3] <- "Fail"
+    }
+    
+  }
+  
+  #Set the column names back to what they should be
+  colnames(scores) <- c("Student", "Average Grade", "Letter Grade")
+  
+  #return or print scores
+  if(Print){
+    print(scores)
+  }else{
+    return(scores)
+  }
+  
+}
+```
+
+A test of the function below shows that it does work.
+
+```{r test grade.M() function}
+#test the function
+grade.M("student_homework.csv")
+```
+
+However, as discussed below, the above function (grade.M()), is not the most efficient way to complete this question. Thus, the class solution is given below. First the data is read in and assigned to an r object.
+
+```{r read data}
+#read in data
+gradebook <- read.csv("student_homework.csv", header= TRUE, row.names = 1) # row.names = 1 sets the first column of the data read in to the row names of the r object
+#check the data is as expected
+head(gradebook)
+```
+
+Then the function is written and applied to the data.
+
+```{r class function grade()}
+#function for a vector
+grade <- function(x){
+  x[is.na(x)] = 0
+  mean(x[-(which.min(x))])
+}
+
+#apply function for a vector across the data frame gradebook
+scores <- apply(gradebook, MARGIN = 1, FUN = grade)
+
+#print scores
+scores
+```
+
+# Question 2
+
+For question 2 we need to find the top scoring student overall, this is simple using the which.max() function which provides the index of the first highest score in a vector.
+
+```{r Q2}
+which.max(scores)
+```
+
+# Question 3
+
+For question 3 the aim is to ascertain which homework assignment was found most difficult by the students i.e. which assignment had the lowest score overall? This can be done using the which.min() function which is identical to which.max() except that it returns the index of the first minimum score.
+
+```{r Q3}
+which.min(apply(gradebook, MARGIN = 2, FUN = mean, na.rm=TRUE)) 
+```
+
+However, the above does not take account of NA values, and it is possible that those assignments not turned in are the hardest (such that students cannot even complete them).
+
+```{r Q3 extended}
+#replace NA with 0 in gradebook and assign this to grade0
+grade0 <- gradebook
+grade0[is.na(grade0)] <- 0
+
+#use which.min to ascertain which assignment was hardest if NA are set to a score of 0
+which.min(apply(grade0, MARGIN = 2, FUN = mean)) 
+```
+
+Plot the data to make sure that these results make sense.
+
+```{r}
+boxplot(gradebook, ylab="Individual Grades (NA ommited)", xlab="Homework Assignment")
+
+boxplot(grade0, ylab="Individual Grades (NA set to 0)", xlab="Homework Assignment")
+```
+
+
+# Question 4
+
+To answer the question of which homework assignment correlates the best with average grades will require the use of two previously created r objects. Namely: scores, which gives the average score for each student, and grade0, which is the gradebook with all NA values converted to 0. Additionally, the cor function will be useful here, as explained in the help pages, this function computes the correlations between two inputs.
+
+```{r computing correlations}
+#first a simpler example, considering a particular column of group0
+cor(grade0$hw1, scores)
+
+#the help page indicates that cor can accommodate matrices, thus the whole of grade0 can be considered at once
+apply(grade0, 2, cor, scores) #note the 2 indicates that cor should be applied to the columns of grade0
+
+```
+
+An alternative method might be to calculate the differences of each individual assignment grade from the average, and then find which has minimal difference, as below. However, this is considerably more messy than the above solution.
+
+```{r}
+#initialize a matrix for use in the calculation
+dif <- matrix(ncol=4, nrow=0)
+
+#calculate the difference from the average of each individual assignment grade
+for(i in 1:length(scores)){
+  dif <- rbind(dif, abs(grade0[i,] - scores[i]))
+}
+
+#find which homework assignment correlates best with each student's average grade
+corre <- apply(dif, 1, which.min)
+
+```
+
+
+# Question 5
+
+Knit this document to a pdf!
+
