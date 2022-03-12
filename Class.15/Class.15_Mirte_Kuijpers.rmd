@@ -1,0 +1,578 @@
+---
+title: 'Class 15: Investigating Pertussis Resurgence'
+author: "Mirte Ciz Marieke Kuijpers"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+The United States Centers for Disease Control and Prevention (CDC) has been compiling reported pertussis case numbers since 1922 in their National Notifiable Diseases Surveillance System (NNDSS). This project will focus on analaysis of this data.
+
+```{r Set-up, message=FALSE}
+# Load packages
+library("datapasta") # for easy import of copied data
+library("ggplot2") # for plotting
+library("jsonlite") # for reading, writing and processing JSON data
+library("lubridate") # for dealing with dates
+library("dplyr") # for manipulating tables
+library("tidyr")
+library("DESeq2") # for looking at gene expression
+
+# Load data
+dat <- read.table("pertussis.data.txt", header = TRUE)
+
+```
+
+
+### Question 1
+
+The first step that should be done is to plot the raw data to get a better idea of it.
+
+```{r plot raw data}
+# Convert reported pertussis cases to numeric
+dat$No.Reported.Pertussis.Cases <- as.numeric(gsub(",", "", dat$No.Reported.Pertussis.Cases))
+
+# Plot raw data with ggplot2
+ggplot(dat, aes(Year, No.Reported.Pertussis.Cases)) +
+  geom_point() +
+  labs(title = "Number of reported Pertussis Cases in the US over time", y = "Number of reported pertussis cases") +
+  geom_line(col = "blue") +
+  ylim(c(-25000, 300000))
+
+```
+
+A simpler way to do this is to use the package `datapasta`. After installation and loading of `datapasta`; one can simply copy the data on the website and paste it into `R` using the addin drop-down menu to paste the data as a data.frame.
+
+```{r create cdc}
+# Paste data in using datapasta
+cdc <- data.frame(
+                              Year = c(1922L,1923L,1924L,1925L,1926L,1927L,
+                                       1928L,1929L,1930L,1931L,1932L,
+                                       1933L,1934L,1935L,1936L,1937L,1938L,
+                                       1939L,1940L,1941L,1942L,1943L,1944L,
+                                       1945L,1946L,1947L,1948L,1949L,1950L,
+                                       1951L,1952L,1953L,1954L,1955L,1956L,
+                                       1957L,1958L,1959L,1960L,1961L,1962L,
+                                       1963L,1964L,1965L,1966L,1967L,1968L,
+                                       1969L,1970L,1971L,1972L,1973L,
+                                       1974L,1975L,1976L,1977L,1978L,1979L,
+                                       1980L,1981L,1982L,1983L,1984L,1985L,
+                                       1986L,1987L,1988L,1989L,1990L,1991L,
+                                       1992L,1993L,1994L,1995L,1996L,1997L,
+                                       1998L,1999L,2000L,2001L,2002L,2003L,
+                                       2004L,2005L,2006L,2007L,2008L,2009L,
+                                       2010L,2011L,2012L,2013L,2014L,
+                                       2015L,2016L,2017L,2018L,2019L),
+      No..Reported.Pertussis.Cases = c(107473,164191,165418,152003,202210,
+                                       181411,161799,197371,166914,172559,
+                                       215343,179135,265269,180518,147237,
+                                       214652,227319,103188,183866,222202,
+                                       191383,191890,109873,133792,109860,
+                                       156517,74715,69479,120718,68687,45030,
+                                       37129,60886,62786,31732,28295,32148,
+                                       40005,14809,11468,17749,17135,13005,
+                                       6799,7717,9718,4810,3285,4249,3036,
+                                       3287,1759,2402,1738,1010,2177,
+                                       2063,1623,1730,1248,1895,2463,2276,
+                                       3589,4195,2823,3450,4157,4570,2719,
+                                       4083,6586,4617,5137,7796,6564,7405,
+                                       7298,7867,7580,9771,11647,25827,
+                                       25616,15632,10454,13278,16858,27550,
+                                       18719,48277,28639,32971,20762,17972,
+                                       18975,15609,18617)
+    )
+
+```
+
+This provides a data.frame identical to that made by the `read.table()` function + the line of code required to change the second column to numeric. It is undeniably simpler and will proove useful. As an extra check, we can repeat the plotting for cdc.
+
+```{r plot cdc}
+# Plot raw data with ggplot2
+p.dat <- ggplot(cdc, aes(Year, No..Reported.Pertussis.Cases)) +
+  geom_point() +
+  labs(title = "Number of reported Pertussis Cases in the US over time", y = "Number of reported pertussis cases") +
+  geom_line(col = "blue") +
+  ylim(c(-25000, 300000))
+
+p.dat
+```
+The plots appear identical as expected.
+
+### Question 2 and 3
+
+We can also add information about important historical events, such as the advent of new vaccines.
+
+```{r }
+# Plot add historical events to plot
+p.dat.anno <- p.dat +
+    geom_vline(xintercept = 1946, col = "darkgreen", lty = 2) +
+    geom_vline(xintercept = 1996, col = "red", lty = 2) +
+    annotate(geom = "text", x = 1964, y= 275000 , label="Introduction of the wP vaccine", color="darkgreen") +
+    annotate(geom = "text", x = 2008, y= 275000 , label="Introduction of the 
+  aP vaccine", color="red")
+
+p.dat.anno
+
+```
+
+Introduction of the wP vaccine lead to a reduced case load. This took a while as a certain portion of the population needs to be vaccinated before the population rather than just the vaccinated individuals become protected. However, with a little time, it is clear that vaccination with wP, overtime, lead to practically 0 cases. 
+
+Unfortunately, after introduction of the aP vaccine, there seems to be a slight increase in cases. However, it is not clear whether this is a correlation or a causation. It might be possible that, vaccination rates have gone down, independent of the aP vaccine or wP vaccine being offered. So one possibility for this change is vaccine hesitancy. Another possibility is mutations of Pertussis, or it could be that the aP vaccine is less effective. Furthermore, another possibility is that increased travel has lead to an influx of unvaccinated populations, or unvaccinated individuals from the US becoming infected while traveling.
+
+It seems likely, however, that the aP vaccine doesn't work as well, because it is mainly young adults, 10 year-olds etc, who caused the spike in infections and they were the first to recieve the aP vaccine. It thus seems likely the aP vaccine gives waning immunity, with immunity disappearing about 10+ years after vaccination.
+
+# Exploring CMI-PB data
+
+The CMI-PB project aims to provide the scientific community with information on why the vaccine-preventable disease of Pertussis are seeing an increase in cases. Investigating this requires an understanding of the mechanisms of waning immunity to Pertussis, which is one of the goals of the project.
+
+```{r}
+# Read in raw data
+subject <- read_json("https://www.cmi-pb.org/api/subject", simplifyVector = TRUE) 
+
+# Check this has read in correctly
+head(subject, 3)
+```
+
+### Question 4
+
+```{r aP or wP?}
+# Find number of people vaccinated with each vaccine
+aP <- length(subject$infancy_vac == "aP")
+wP <- length(subject$infancy_vac == "wP")
+  
+# Answers
+aP
+wP
+
+```
+There are `r aP` people who were vaccinated with the aP vaccination in infancy and `r wP` people who were vaccinated with the wP vaccination in infacny.
+
+### Question 5
+
+```{r Male or Female?}
+# Find number of males and females in the dataset
+male <- length(subject$biological_sex == "Male")
+female <- length(subject$biological_sex == "Female")
+  
+# Answers
+male
+female
+```
+There are `r male` males and `r female` females in the dataset. Note, it would have been possible to find the number of one sex by subtracting the number of the other sex from the total, but this method is more robust, because if there was any missing data or unknowns they would not effect the method used, but would effect the method suggested.
+
+### Question 6
+
+```{r breackdown of subject sex, race and ethnicity}
+# Make a sex, race and ethnicity data.frame
+#ber <- subject[, c("biological_sex", "ethnicity", "race")]
+#bre <- subject[, c("biological_sex", "race", "ethnicity")]
+reb <- subject[, c("race", "ethnicity", "biological_sex")]
+
+# Get a table
+#table(ber)
+#table(bre)
+table(reb)
+
+```
+
+While this is not perfect, it a reasonable way to tabulate the three factors against each other. Note, that, dependent on the order of the three factors, the tables will be split differently. Placing biological sex last makes sense, because it means we only get two tables (if ethnicity was last, there would be a table for each ethnicity, containing biological sex against race, which is more difficult to interpret due to more tables to compare).
+
+### Question 7
+
+```{r average ages}
+# Find the age of individuals
+subject$age <- today() - ymd(subject$year_of_birth)
+
+# Find average age of aP individuals
+ap.age <- subject[subject$infancy_vac == "aP", "age"]
+time_length(mean(ap.age), "year")
+
+# Find average age of wP individuals
+wp.age <- subject[subject$infancy_vac == "wP", "age"]
+time_length(mean(wp.age), "year")
+
+```
+
+
+The format of the `year_of_birth` column is year-month-date, so the `ymd()` function was used. To see if the two groups differ in age significantly we can probably use a student's t-test. However, as this requires parametric data, it would be wise to quickly plot the data to check whether it looks relatively normal.
+
+
+```{r}
+# Plot average ages
+ggplot(subject, aes(time_length(age, "year"), fill=as.factor(infancy_vac))) +
+  geom_histogram(show.legend = FALSE) +
+  facet_wrap(vars(infancy_vac), nrow=2) +
+  labs(x = "Age (Years)")
+
+```
+
+Neither of these look particularly parametric, so a t-test is not appropriate. By eye they do look significantly different. Instead of the parametric t-test we can instead use a non-parametric test such as a Wilcoxin test.
+
+```{r}
+# wilcox test
+wilcox.test(time_length(ap.age, "year"), time_length(wp.age, "year"), alternative = "two.sided")
+```
+This gives a p-value < 2.2e-16, and thus the two vaccine groups do have a significantly different age spread.
+
+
+### Question 8
+
+The age at receiving a booster vaccination can be calculated in a similar way.
+
+```{r}
+# Find the age of individuals
+subject$age_at_boost <- time_length(ymd(subject$date_of_boost) - ymd(subject$year_of_birth), "year")
+head(subject$age_at_boost)
+
+```
+
+
+## Joining multiple data tables
+
+### Question 9 and 10
+
+We can now fetch the speciman and titer data as well, these include values for scientific experiments, while subject was mainly metadata on the subjects who gave samples for these experiments. To check what to join by we can use `col_names()`. If the columns to join by have the same data, but different column names, then `by.x` and `by.y` can be used instead of `by`.
+
+```{r get further data}
+# load data for specimens and ab_titer
+specimen <- read_json("https://www.cmi-pb.org/api/specimen", simplifyVector = TRUE) 
+titer <- read_json("https://www.cmi-pb.org/api/ab_titer", simplifyVector = TRUE) 
+
+# check dimensions and colnames of each 
+dim(subject)
+colnames(subject)
+
+dim(specimen)
+colnames(specimen)
+
+dim(titer)
+colnames(titer)
+
+# first join specimen and subject, as both have subject_id
+meta <- inner_join(specimen, subject, by = "subject_id")
+
+dim(meta)
+colnames(meta)
+
+# then join meta and titer as both have specimen_id
+abdata <- inner_join(titer, meta, by = "specimen_id")
+
+dim(abdata)
+colnames(abdata)
+head(abdata)
+
+```
+
+We now have a single table with the titer data related to specimen and subject data. This can now be used for analysis.
+
+### Question 11
+
+To see how many specimens there are for each isotype we can use `table()`.
+
+```{r isotype}
+# How many of each isotype
+table(abdata$isotype)
+
+```
+
+### Question 12
+
+```{r visit 8}
+# inspect visit 8 specimens
+table(abdata$visit)
+
+```
+
+Visit 8 specimens are far fewer in number (likely there was a drop in subjects who made it to this late visit). It would thus be best to exclude this data poor visit from our analysis.
+
+# Examining IgG1 Ab titer levels
+
+As previously mentioned, we should exclude visit 8 from our analysis. We are also going to focus on IgG1.
+
+```{r filter data}
+#filter data
+ig1 <- abdata %>% filter(isotype == "IgG1", visit != 8)
+
+head(ig1)
+```
+
+### Question 13
+
+As before, we should start by plotting our raw data.
+
+```{r raw data boxchart}
+# plot boxchart
+ggplot(ig1, aes(ab_titer, antigen)) +
+  geom_boxplot() + 
+  facet_wrap(vars(visit), nrow=2) +
+  labs(title = "Antibody titer for various antigens faceted by visit")
+```
+It might be more intuitive to group by antigen and make a time course.
+
+```{r plot by visit}
+# Create average data for this plot
+ig1.avgs <- ig1 %>%
+  group_by(antigen, visit) %>%
+  summarize(mean = mean(ab_titer), n = n())
+
+# Plot these averages
+ggplot(ig1.avgs, aes(visit, mean, group = antigen, col = antigen)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Visit", y = "Mean ab_titer (grouped by antigen type and visit)", col = "Antigen")
+
+```
+From this graph it seems that DT, FHA, FRIM2/3, PRN, 1% PFA PT, PTM and TT (an antigen for one of the other infectious agents that the tdap vaccine protects against) all have some change in titer while LOS, LOLP1, Measles, OVA, PD1, PT and BETV1 have no or minimal change in antibody titer. On the website we can look up what these antigens are. For example, PRN is pertactin autotransporter, a protein, a link to uniprot is provided, and there we can see it is likely virulence related, and so provided in the vaccine. This makes sense, antibodies against antigens for other infectious diseases should not go up, while components of the vaccine should see an increase in the antibodies targeting them.
+
+
+We can also look at the differences between aP and wP vaccinated individuals.
+
+```{r boxplot aP vs wP}
+# colour by vaccine
+ggplot(ig1) +
+  aes(ab_titer, antigen, col=infancy_vac ) +
+  geom_boxplot(show.legend = FALSE) + 
+  facet_wrap(vars(visit), nrow=2) +
+  theme_bw()
+
+# OR facet by vaccine
+ggplot(ig1) +
+  aes(ab_titer, antigen, col=infancy_vac ) +
+  geom_boxplot(show.legend = FALSE) + 
+  facet_wrap(vars(infancy_vac, visit), nrow=2)
+```
+
+The second plot is better, as the first shows too much information to easily process. Although, it is useful for a quick and dirty comparison of the two.
+
+### Question 15
+
+We can now focus in on particular antigens, making them easier to look at.
+
+```{r plot measles and fim ab_titer}
+# plot measles ab_titer
+filter(ig1, antigen=="Measles") %>%
+  ggplot() +
+  aes(ab_titer, col=infancy_vac) +
+  geom_boxplot(show.legend = FALSE) +
+  facet_wrap(vars(visit)) +
+  theme_bw() +
+  labs(title = "Ab_titer for measles antigen (aP in red, wP in teal)")
+
+# plot fim ab_titer
+filter(ig1, antigen=="FIM2/3") %>%
+  ggplot() +
+  aes(ab_titer, col=infancy_vac) +
+  geom_boxplot(show.legend = FALSE) +
+  facet_wrap(vars(visit)) +
+  theme_bw() +
+  labs(title = "Ab_titer for FIM2/3 antigen (aP in red, wP in teal)")
+
+```
+
+### Question 16
+
+FIM2/3 is part of the pertussis fimbriae, which is on the cell-surface, and so is easily found by the immune system. Thus it is a good candidate for an antigen in the vaccine, and we see it has high ab_titers. Measles antigens are not in the vaccine and, unsurprisingly, given this, shows little change.
+
+### Question 17
+
+No, unfortunately not.
+
+# Obtaining CMI-PB RNASeq data
+
+For RNA-Seq data the API query mechanism quickly hits the web browser interface limit for file size. We can do a more targeted search to minimize the size of the data we have to use. Specifically, we will use the ensembl_gene_id = eq.ENSG00000211896.7, which is for key gene involved in expressing any IgG1 antibody, namely the IGHG1 gene. 
+
+```{r IGHG1 rna data}
+# url to use
+url <- "https://www.cmi-pb.org/api/v2/rnaseq?versioned_ensembl_gene_id=eq.ENSG00000211896.7"
+
+# load data
+rna <- read_json(url, simplifyVector = TRUE) 
+
+# join this data to the meta data
+ssrna <- inner_join(rna, meta)
+
+# check your work
+head(ssrna)
+```
+
+With the data loaded, we can first plot it to get a visualization of the data we will be working with.
+
+### Question 18
+
+```{r plot ssrna}
+# plot ssrna
+ggplot(ssrna, aes(visit, tpm, group=subject_id)) +
+  geom_point() +
+  geom_line(alpha=0.2) +
+  labs(y = "IGHG1 expression (tpm)", x = "Visit")
+
+```
+### Question 19
+
+Interestingly, the major spike in expression, for most specimens, is around visit 4.
+
+### Question 20
+
+This trend does not match that in the antibody data perfectly, as the maximum for the antibody data is closer to 5. This, however, makes sense, we would expect antibodies to be long-lived, lasting much longer than gene expression. Furthermore, a small population of cells will continue to make the antibody (T-cells), even after the main immune response has ended.
+
+We can again compare by vaccine. Colouring by vaccine in the previous plot is possible, but not particularly informative, as it is hard to interpret. Therefore using a boxplot is more informative in this case.
+
+```{r ssrn by vaccine}
+# plot as previously
+ggplot(ssrna, aes(visit, tpm, group=subject_id, col = infancy_vac)) +
+  geom_point() +
+  geom_line(alpha=0.2) +
+  labs(y = "IGHG1 expression (tpm)", x = "Visit")
+
+# plot ssrn by vaccine
+ggplot(ssrna, aes(tpm, col=infancy_vac)) +
+  geom_boxplot() +
+  facet_wrap(vars(visit))
+
+```
+There are no obvious differences here. We can also look at a particular visit.
+
+```{r ssrna by visit}
+## ssrna for visit 4
+ssrna %>%  
+  filter(visit==4) %>% 
+  ggplot() +
+    aes(tpm, col=infancy_vac) + geom_density() + 
+    geom_rug() 
+
+## ssrna per visit
+ggplot(ssrna, aes(tpm, col=infancy_vac)) +
+  geom_density() +
+  geom_rug() +
+  facet_wrap(~visit)
+```
+
+By visit there is some difference, but whether this is significant is unclear.
+
+
+# Working with larger datasets
+
+```{r load rna data}
+# load data
+rnaseq <- read.csv("2020LD_rnaseq.csv")
+
+# check 
+head(rnaseq,3)
+dim(rnaseq)
+
+```
+With the data loaded we can start exploring it.
+
+```{r}
+# number of genes per specimen
+n_genes <- table(rnaseq$specimen_id)
+head(n_genes , 10)
+
+# number of specimens
+length(n_genes)
+
+# are there the same number of genes for all specimens
+all(n_genes[1]==n_genes)
+```
+
+Now we can convert to the wide format, which is easier to read, as it gives values for each gene in each location in a clear table
+
+```{r}
+# convert to wide format
+rna_wide <- rnaseq %>% 
+  select(versioned_ensembl_gene_id, specimen_id, tpm) %>%
+  pivot_wider(names_from = specimen_id, values_from=tpm)
+
+# get dimensions
+dim(rna_wide)
+
+# check results
+head(rna_wide[,1:7], 3)
+```
+
+The next step is to filter the data to remove any zero count genes, which are not required for further analysis.
+
+```{r}
+# create a numbers only rna.wide
+rna.wide <- as.data.frame(rna_wide[, -1])
+
+# set first column of rna_wide as rownames for rna.wide
+rownames(rna.wide) <- rna_wide$versioned_ensembl_gene_id
+
+# check dimensions
+dim(rna.wide)
+dim(rna_wide)
+
+# find rows with a total of zero
+ind <- rowSums(rna.wide) != 0
+
+# use the indices to remove zero count genes
+rna.wide <- rna.wide[ ind , ]
+
+# check 
+sum(ind)
+dim(rna.wide)
+
+```
+All zero count genes have now been removed from the object and analysis can begin. The next step might be to use DESeq2.
+
+```{r}
+# order rna.wide and specimen
+rna.wide <- rna.wide[order(colnames(rna.wide))]
+meta <- meta[order(meta$specimen_id),]
+
+# remove specimen's not in the data
+met <- meta[c(colnames(rna.wide)),]
+
+# remove NAs
+rna.wide[is.na(rna.wide)] = 0
+
+# DESeq
+dds = DESeqDataSetFromMatrix(countData = round(as.matrix(rna.wide)),
+                             colData = met,
+                             design = ~ as.factor(infancy_vac))
+dds = DESeq(dds)
+
+```
+Now this can be used to look at results and make a volcano plot.
+
+```{r}
+# look at results
+res <- results(dds)
+res
+summary(res)
+
+#
+res05 <- results(dds, alpha=0.05)
+summary(res05)
+
+##### Plotting 
+# Setup our custom point color vector 
+mycols <- rep("gray", nrow(res))
+mycols[ abs(res$log2FoldChange) > 2 ]  <- "red" 
+
+inds <- (res$padj < 0.01) & (abs(res$log2FoldChange) > 2 )
+mycols[ inds ] <- "blue"
+
+# Volcano plot with custom colors 
+plot( res$log2FoldChange,  -log(res$padj), col=mycols, ylab="-Log(P-value)", xlab="Log2(FoldChange)" )
+
+```
+
+While this leaves out many important steps, such as testing other key variables such as sex and age (the differences here could be due to age rather than vaccine given that vaccine groups vary significantly in age), and adding gene names to the results. This code provides a start and previous labs could be used to further flesh it out.
+
+
+# Session Information
+
+```{r}
+sessionInfo()
+```
+
+
