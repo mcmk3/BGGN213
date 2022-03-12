@@ -15,4 +15,4 @@ gitcreds_set()
 
 ```
 
-We can go straight to particular regions by adding a link. The link can be added by just adding a url.
+We can go straight to particular regions by adding a link. For example, the class 5 pdf file is [here](https://github.com/mcmkuijpers/BGGN213/blob/main/Week.05/Mirte_Kuijpers_Week05.Friday.Homework.pdf).
