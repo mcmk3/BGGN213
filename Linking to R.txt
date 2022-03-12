@@ -1,0 +1,12 @@
+If you need a password token, use the following code.
+
+```r
+# Libraries to load
+library("usethis")
+library("gitcreds")
+
+# Create and set token
+create_github_token()
+gitcreds_set()
+
+```
